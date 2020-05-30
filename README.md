@@ -1,7 +1,7 @@
 # jdCake
 ## 京东618叠蛋糕脚本📜
 接口参考[仓库](https://github.com/zarkin404/sweater/tree/master/jingdong/2020_cake_baker)  
-## Use
+## Usage
 命令行运行
 ```
 pip install -r requirements.txt
