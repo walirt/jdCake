@@ -1,8 +1,8 @@
 '''
 @File: jdCake.py
 @Author: ritter
-@Github: https://github.com/Ri773r
-@License: MIT
+@Version: 1.0
+@Description:
 '''
 import time
 from io import BytesIO
