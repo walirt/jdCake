@@ -1,7 +1,7 @@
 '''
 @File: jdCake.py
 @Author: ritter
-@Version: 1.0
+@Version: 2.0
 @Description:
 '''
 import time
@@ -73,7 +73,11 @@ def getUserInfo(session):
         "_": str(int(time.time() * 1000))
     }
     resp = session.get(url, params=params)
-    return json.loads(re.findall("jQuery6419664\((.*)\)", resp.text, re.S)[0])
+    respd = re.findall("jQuery6419664\((.*)\)", resp.text, re.S)[0]
+    if respd == "null({})":
+        # cookie过期
+        return {}
+    return json.loads(respd)
 
 def login(session):
     raw = getQRCode(session)
@@ -233,14 +237,14 @@ def doTask(session, secretp, task_queue):
             "client": "wh5",
             "clientVersion": "1.0.0"
         }
-        # 除了 小精灵 0 连签 1 加购 2 去领新人专享福利 3 去玩AR吃蛋糕小游戏 20 的任务都要执行2次
-        if task["taskType"] not in [0, 1, 2, 3, 20]:
+        # 除了 小精灵 0 连签 13 加购 2 去领新人专享福利 3 去玩AR吃蛋糕小游戏 20 的任务都要执行2次
+        if task["taskType"] not in [0, 13, 2, 3, 20]:
             resp = session.post(action_url, data=body).json()
             if resp["data"]["success"]:
                 print("任务[{taskName}]领取成功👌".format(taskName=task["taskName"]))
                 time.sleep(2 + task["waitDuration"])
             else:
-                print("任务[{taskName}]领取失败👌, 失败原因[{message}]".format(
+                print("任务[{taskName}]领取失败😱, 失败原因[{message}]".format(
                     taskName=task["taskName"],
                     message=resp["data"].get("bizMsg", "")
                 ))
@@ -274,6 +278,14 @@ def main():
             cookies = json.load(f)
         session.cookies.update(cookies)
     else:
+        login(session)
+    # 测试登录状态是否有效
+    resp = getUserInfo(session)
+    if resp.get("nickName"):
+        print("🎈欢迎你, {nickName}".format(nickName=resp["nickName"]))
+    else:
+        print("登录状态已过期😱, 请重新扫码登录")
+        session.cookies.clear()
         login(session)
     session.headers.update({
         "origin": "https://home.m.jd.com",
