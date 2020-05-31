@@ -13,3 +13,5 @@ python jdCake.py
 - 获取任务接口每次获取任务不全，所以会重复获取几次任务，直到所有任务完成为止
 ## Preview
 ![](https://github.com/Ri773r/jdCake/blob/master/jdCake_preview.png)
+## License
+![](https://img.shields.io/badge/License-MIT-blue.svg)
