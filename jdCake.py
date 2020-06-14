@@ -11,6 +11,7 @@ import json
 import os
 from pprint import pprint
 import platform
+import random
 
 import requests
 from PIL import Image
@@ -170,7 +171,7 @@ def superiorTask(session, task_ids):
 def genTaskQueue(session, tasks):
     # 跳过部分邀请任务
     func = lambda task: task["taskName"].find("邀请") == -1 and task["taskName"].find("邀人") == -1 and \
-                        task["taskName"].find("战队") == -1
+                        task["taskName"].find("战队") == -1 and re.match("开.*会员", task["taskName"]) is None
     tasks = filter(func, tasks)
     all_todo_tasks = []
     for task in tasks:
@@ -223,6 +224,8 @@ def genTaskQueue(session, tasks):
     return all_todo_tasks
 
 def doTask(session, secretp, task_queue):
+    # 打乱顺序
+    random.shuffle(task_queue)
     while len(task_queue) > 0:
         task = task_queue.pop(0)
         action_url = "https://api.m.jd.com/client.action"
@@ -241,30 +244,37 @@ def doTask(session, secretp, task_queue):
         if task["taskType"] not in [0, 13, 2, 3, 20]:
             resp = session.post(action_url, data=body).json()
             if resp["data"]["success"]:
-                print("任务[{taskName}]领取成功👌".format(taskName=task["taskName"]))
+                print("任务[{taskName}]领取成功👌，浏览时间[{waitDuration}s]".format(taskName=task["taskName"]
+                                                                         , waitDuration=task["waitDuration"]))
                 time.sleep(2 + task["waitDuration"])
             else:
                 print("任务[{taskName}]领取失败😱, 失败原因[{message}]".format(
                     taskName=task["taskName"],
                     message=resp["data"].get("bizMsg", "")
                 ))
+                # 失败重新放入队列
+                task_queue.append(task)
                 continue
 
         inner_body = json.loads(body["body"])
         del inner_body["actionType"]
         body["body"] = json.dumps(inner_body)
-        resp = session.post(action_url, data=body).json()
-        if resp["data"]["success"]:
-            print("任务[{taskName}]执行成功👌，获得金币💰{score}, 当前任务剩余次数👉{times}".format(
-                taskName=task["taskName"],
-                score=resp["data"]["result"].get("score", 0),
-                times=resp["data"]["result"].get("maxTimes", 0) - resp["data"]["result"].get("times", 0)
-            ))
-        else:
-            print("任务[{taskName}]执行失败😱, 失败原因[{message}]".format(
+        while True:
+            resp = session.post(action_url, data=body).json()
+            if resp["data"]["success"]:
+                print("任务[{taskName}]执行成功👌，获得金币💰{score}, 当前任务剩余次数👉{times}".format(
                     taskName=task["taskName"],
-                    message=resp["data"].get("bizMsg", "")
+                    score=resp["data"]["result"].get("score", 0),
+                    times=resp["data"]["result"].get("maxTimes", 0) - resp["data"]["result"].get("times", 0)
                 ))
+                break
+            else:
+                print("任务[{taskName}]执行失败😱, 失败原因[{message}]".format(
+                        taskName=task["taskName"],
+                        message=resp["data"].get("bizMsg", "")
+                    ))
+            # 失败等待5秒再次执行
+            time.sleep(5)
 
 def main():
     session = requests.Session()
